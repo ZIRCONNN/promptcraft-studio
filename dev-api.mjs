@@ -3,7 +3,7 @@ import http from 'node:http';
 import { POST } from './api/gemini.js';
 
 console.log('GEMINI_API_KEY loaded:', Boolean(process.env.GEMINI_API_KEY)); // true/false only
-
+console.log('ACCESS_CODE loaded, length:', (process.env.ACCESS_CODE || '').length);
 http
   .createServer(async (req, res) => {
     if (req.method !== 'POST' || req.url !== '/api/gemini') {
@@ -15,7 +15,10 @@ http
       for await (const chunk of req) chunks.push(chunk);
       const request = new Request('http://localhost/api/gemini', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          'x-access-code': req.headers['x-access-code'] ?? '',
+        },
         body: Buffer.concat(chunks),
       });
       const response = await POST(request);

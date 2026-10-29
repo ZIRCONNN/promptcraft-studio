@@ -32,7 +32,7 @@ import {
   X
 } from 'lucide-react';
 import { readTheme, loadSavedPrompts, parseEnhancement, detectVariables, assemblePrompt, buildEnhanceQuery } from './lib/promptUtils';
-import { callGemini, userMessage } from './lib/geminiClient';
+import { callGemini, userMessage, getAccessCode, setAccessCode } from './lib/geminiClient';
 
 // ==========================================
 // PRESET TEMPLATES DATA
@@ -186,7 +186,7 @@ export default function App() {
   const [theme, setTheme] = useState(readTheme);
   const [activeTab, setActiveTab] = useState('builder'); // 'builder' | 'library' | 'gallery' | 'sandbox' | 'settings'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
+  
   // Core Builder State
   const [builderState, setBuilderState] = useState({
     title: 'Untitled Masterpiece',
@@ -218,6 +218,7 @@ export default function App() {
 
   // Toast Notification
   const [toast, setToast] = useState(null);
+  const [accessCode, setAccessCodeState] = useState(getAccessCode);
 
   // Refs: toast timer, and one abort controller per AI feature
   const toastTimer = useRef(null);
@@ -814,7 +815,6 @@ export default function App() {
                           onClick={() => updateField('role', suggestion)}
                           className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:text-indigo-600 text-[11px] text-slate-500 transition"
                         >
-                          + {suggestion}
                         </button>
                       ))}
                     </div>
@@ -1317,6 +1317,20 @@ export default function App() {
               </div>
 
               <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm space-y-6">
+                <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <h3 className="font-semibold text-sm">AI Access Code</h3>
+                    <p className="text-xs text-slate-400">Required for Magic Enhance and the Sandbox. Kept for this browser session only.</p>
+                  </div>
+                  <input
+                    type="password"
+                    value={accessCode}
+                    onChange={(e) => { setAccessCodeState(e.target.value); setAccessCode(e.target.value); }}
+                    placeholder="Enter code"
+                    aria-label="AI access code"
+                    className="w-44 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
 
                 {/* Theme Selector */}
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">

@@ -1,5 +1,6 @@
 // Server-side only. Runs on Vercel, never ships to the browser.
 // Export style follows Vercel's Web-standard handlers; verify against current Vercel Functions docs.
+import { timingSafeEqual } from 'node:crypto';
 
 const MODEL = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
 const UPSTREAM = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
@@ -33,9 +34,22 @@ const json = (body, status = 200, headers = {}) =>
     headers: { 'Content-Type': 'application/json', ...headers },
   });
 
+
+// Constant-time comparison so response timing can't be used to guess the code.
+function codeMatches(given, expected) {
+  if (typeof given !== 'string' || !expected) return false;
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 export async function POST(request) {
   // No VITE_ prefix, so this can never be bundled into browser code.
   const apiKey = process.env.GEMINI_API_KEY;
+    // Reject callers without the access code before doing any work or spending quota.
+  if (!codeMatches(request.headers.get('x-access-code'), process.env.ACCESS_CODE)) {
+    return json({ error: 'Access code required.' }, 401);
+  }
   if (!apiKey) return json({ error: 'Server is not configured.' }, 500);
 
   let body;

@@ -15,13 +15,22 @@ const sleep = (ms, signal) =>
     }, { once: true });
   });
 
+const CODE_KEY = 'promptcraft_access_code';
+
+export function getAccessCode() {
+  try { return sessionStorage.getItem(CODE_KEY) || ''; } catch { return ''; }
+}
+export function setAccessCode(code) {
+  try { sessionStorage.setItem(CODE_KEY, code); } catch { /* storage blocked: code lasts until reload */ }
+}
+
 export async function callGemini({ mode, userQuery, signal }) {
   let delay = 1000;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
       const res = await fetch(ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-access-code': getAccessCode() },
         body: JSON.stringify({ mode, userQuery }),
         signal,
       });
@@ -43,6 +52,7 @@ export function userMessage(err) {
   if (err instanceof ApiError) {
     if (err.status === 400 || err.status === 413) return err.message;
     if (err.status === 429) return 'Rate limit reached. Wait a moment and retry.';
+    if (err.status === 401) return 'Access code missing or wrong. Enter it in Settings.';
     if (err.status >= 500) return 'The AI service is temporarily unavailable.';
     return 'The request could not be completed.';
   }

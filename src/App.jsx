@@ -33,116 +33,7 @@ import {
 } from 'lucide-react';
 import { readTheme, loadSavedPrompts, parseEnhancement, detectVariables, assemblePrompt, buildEnhanceQuery } from './lib/promptUtils';
 import { callGemini, userMessage, getAccessCode, setAccessCode } from './lib/geminiClient';
-
-// ==========================================
-// PRESET TEMPLATES DATA
-// ==========================================
-const DEFAULT_TEMPLATES = [
-  {
-    id: 'tpl-1',
-    title: 'Code Auditor & Security Refactorer',
-    category: 'Code',
-    targetModel: 'Claude',
-    role: 'Principal Software Security Architect & Senior Code Auditor',
-    goal: 'Analyze the provided {{programming_language}} code snippet for security vulnerabilities, edge cases, performance bottlenecks, and refactor it adhering to best practices.',
-    context: 'The code is part of a high-throughput production microservice handling sensitive user operations. Readability and micro-optimizations are paramount.',
-    constraints: '1. Provide a step-by-step security breakdown.\n2. Output the refactored code block with detailed comments.\n3. Mention time and space complexity changes.',
-    tone: 'Professional & Technical',
-    tags: ['Code', 'Security', 'Refactoring'],
-    rating: 4.9
-  },
-  {
-    id: 'tpl-2',
-    title: 'Executive Email Polisher & Writer',
-    category: 'Productivity',
-    targetModel: 'ChatGPT',
-    role: 'Executive Communications Director to a Fortune 500 CEO',
-    goal: 'Draft a concise, high-impact email response regarding {{email_topic}} targeted at {{recipient_role}}.',
-    context: 'The email needs to balance warmth, professional boundaries, and decisive leadership without sounding aggressive or overly formal.',
-    constraints: 'Keep total word count under 180 words. Include 2 key action points formatted as bullet points and a clear call to action at the end.',
-    tone: 'Diplomatic & Assertive',
-    tags: ['Productivity', 'Email', 'Executive'],
-    rating: 4.8
-  },
-  {
-    id: 'tpl-3',
-    title: 'Socratic Tutor & Concept Explainer',
-    category: 'Learning',
-    targetModel: 'Gemini',
-    role: 'Patient Socratic Professor & Mind-Mapping Educator',
-    goal: 'Explain the complex concept of {{complex_concept}} to a student at a {{target_level}} level.',
-    context: 'The student understands basic fundamentals but struggles with abstract application. Avoid jargon unless clearly defined with real-world analogies.',
-    constraints: 'Start with a vivid real-world metaphor. Break explanation into 3 intuitive phases. End with 2 Socratic questions to test the user comprehension.',
-    tone: 'Encouraging & Analytical',
-    tags: ['Learning', 'Education', 'Socratic'],
-    rating: 4.95
-  },
-  {
-    id: 'tpl-4',
-    title: 'Meeting Notes Structurer & Action Plan',
-    category: 'Productivity',
-    targetModel: 'ChatGPT',
-    role: 'Chief of Staff & Technical Program Manager',
-    goal: 'Convert raw meeting notes or transcript into a clean, executive-ready summary with key decisions and actionable tasks.',
-    context: 'The meeting was held with {{team_name}} regarding {{project_name}} deadlines and architecture blockers.',
-    constraints: 'Format output into 4 Markdown sections: 1. Executive Summary, 2. Key Decisions Made, 3. Action Items (Owner | Task | Deadline), 4. Unresolved Blockers.',
-    tone: 'Direct & Concise',
-    tags: ['Productivity', 'Management', 'Notes'],
-    rating: 4.85
-  },
-  {
-    id: 'tpl-5',
-    title: 'Photorealistic AI Art & Scene Prompt',
-    category: 'Design',
-    targetModel: 'Midjourney',
-    role: 'Master Concept Artist & Lighting Director',
-    goal: 'Create a cinematic photorealistic Midjourney v6 prompt for {{scene_subject}} set in {{environment}}.',
-    context: 'The aesthetic should evoke a moody, ethereal cinematic stillness with high textural fidelity and color harmony.',
-    constraints: 'Include specific details for camera lens (e.g. 85mm f/1.4), volumetric lighting, atmospheric fog, color grade, render engine, and ratio parameters --ar 16:9 --style raw --v 6.0.',
-    tone: 'Descriptive & Visual',
-    tags: ['Design', 'Midjourney', 'Creative'],
-    rating: 4.92
-  },
-  {
-    id: 'tpl-6',
-    title: 'SEO Content Outline & Reader Persona',
-    category: 'Marketing',
-    targetModel: 'ChatGPT',
-    role: 'Senior Content Marketing Strategist & Technical SEO Manager',
-    goal: 'Build an exhaustive, high-ranking SEO blog outline for the topic {{target_keyword}} aimed at {{target_audience}}.',
-    context: 'The article must outrank competing high-authority articles by offering actionable insights, original data framing, and answering search intent.',
-    constraints: 'Provide H2/H3 header structure, search intent alignment, recommended word count per section, and 5 LSI keywords to include naturally.',
-    tone: 'Authoritative & Engaging',
-    tags: ['Marketing', 'SEO', 'Writing'],
-    rating: 4.78
-  },
-  {
-    id: 'tpl-7',
-    title: 'UX Persona & Pain-Point Map Generator',
-    category: 'Design',
-    targetModel: 'Claude',
-    role: 'Lead UX Researcher & Behavioral Product Strategist',
-    goal: 'Construct a detailed user persona for a user trying to solve {{problem_statement}} using {{product_category}}.',
-    context: 'We are designing a next-generation web platform targeting early adopters who value speed and minimal UI complexity.',
-    constraints: 'Include Demographics, Core Goals, Frustrations & Blockers, Key Motivations, and a 3-step User Journey Map.',
-    tone: 'Empathetic & Structured',
-    tags: ['Design', 'UX', 'Research'],
-    rating: 4.88
-  },
-  {
-    id: 'tpl-8',
-    title: 'Python Bug Hunter & Performance Tuning',
-    category: 'Code',
-    targetModel: 'Gemini',
-    role: 'Staff Python Engineer & Performance Optimization Specialist',
-    goal: 'Diagnose runtime errors and memory leaks in the provided Python code snippet.',
-    context: 'The application runs under high concurrency with AsyncIO and requires minimum allocation overhead.',
-    constraints: 'Point out exact lines causing memory leaks or bottlenecks. Provide vectorized/optimized code alternative using standard library or modern paradigms.',
-    tone: 'Technical & Concise',
-    tags: ['Code', 'Python', 'Performance'],
-    rating: 4.9
-  }
-];
+import { DEFAULT_TEMPLATES, TEMPLATE_GROUPS, CATEGORIES } from './lib/templates';
 
 // Initial Saved Prompts
 const INITIAL_SAVED_PROMPTS = [
@@ -274,6 +165,16 @@ export default function App() {
     () => (assembledPrompt.match(/\S+/g) ?? []).length,
     [assembledPrompt]
   );
+  const [galleryQuery, setGalleryQuery] = useState('');
+  const [galleryGroup, setGalleryGroup] = useState('All');
+
+  const filteredTemplates = useMemo(() => {
+    const q = galleryQuery.trim().toLowerCase();
+    return DEFAULT_TEMPLATES.filter((t) =>
+      (galleryGroup === 'All' || t.group === galleryGroup) &&
+      (!q || `${t.title} ${t.profession} ${(t.tags ?? []).join(' ')}`.toLowerCase().includes(q))
+    );
+  }, [galleryQuery, galleryGroup]);
 
   // Compute Health & Quality Score (0 - 100%)
   const qualityMetrics = useMemo(() => {
@@ -781,12 +682,7 @@ export default function App() {
                         onChange={(e) => updateField('category', e.target.value)}
                         className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
                       >
-                        <option value="Productivity">Productivity</option>
-                        <option value="Code">Code & Dev</option>
-                        <option value="Writing">Writing & Copy</option>
-                        <option value="Marketing">Marketing</option>
-                        <option value="Learning">Learning & Ed</option>
-                        <option value="Design">Design & Art</option>
+                        {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
                   </div>
@@ -1157,46 +1053,78 @@ export default function App() {
           {activeTab === 'gallery' && (
             <div className="space-y-6 animate-fadeIn">
               <div className="pb-4 border-b border-slate-200 dark:border-slate-800">
-                <h2 className="text-2xl font-bold">Curated Template Gallery</h2>
-                <p className="text-xs text-slate-500 mt-1">Prompt blueprints for code, writing, executive tasks, and education.</p>
+                <h2 className="text-2xl font-bold">Template Gallery</h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  {filteredTemplates.length} of {DEFAULT_TEMPLATES.length} starter templates across {TEMPLATE_GROUPS.length} fields. Treat them as drafts: test and adjust before relying on the output.
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {DEFAULT_TEMPLATES.map((tpl) => (
-                  <div key={tpl.id} className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
+              <div className="space-y-3">
+                <input
+                  type="search"
+                  value={galleryQuery}
+                  onChange={(e) => setGalleryQuery(e.target.value)}
+                  placeholder="Search by job, task or tag (e.g. animator, SQL, resume)..."
+                  aria-label="Search templates"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {['All', ...TEMPLATE_GROUPS].map((g) => (
+                    <button
+                      key={g}
+                      onClick={() => setGalleryGroup(g)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition ${
+                        galleryGroup === g
+                          ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-semibold'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:border-slate-300'
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {filteredTemplates.length === 0 ? (
+                <div className="py-16 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50">
+                  <h3 className="font-semibold text-slate-700 dark:text-slate-300">No templates match</h3>
+                  <p className="text-xs text-slate-400 mt-1">Try a different keyword or choose All.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {filteredTemplates.map((tpl) => (
+                    <div key={tpl.id} className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <span className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold tracking-wider uppercase">
-                            {tpl.category}
+                            {tpl.profession}
                           </span>
-                          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base mt-1.5">{tpl.title}</h3>
+                          <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-medium">
+                            {tpl.group}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs font-semibold text-amber-500">
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <span>{tpl.rating}</span>
+                        <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{tpl.title}</h3>
+
+                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
+                          <p className="text-slate-700 dark:text-slate-300 font-medium"><strong>Role:</strong> {tpl.role}</p>
+                          <p className="text-slate-600 dark:text-slate-400 line-clamp-2"><strong>Goal:</strong> {tpl.goal}</p>
                         </div>
                       </div>
 
-                      <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
-                        <p className="text-slate-700 dark:text-slate-300 font-medium"><strong>Role:</strong> {tpl.role}</p>
-                        <p className="text-slate-600 dark:text-slate-400 line-clamp-2"><strong>Goal:</strong> {tpl.goal}</p>
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <span className="text-[11px] text-slate-400">Written for: {tpl.targetModel}</span>
+                        <button
+                          onClick={() => handleLoadTemplate(tpl)}
+                          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs transition flex items-center gap-1.5"
+                        >
+                          <span>Use Template</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                      <span className="text-[11px] text-slate-400">Optimized for: {tpl.targetModel}</span>
-                      <button
-                        onClick={() => handleLoadTemplate(tpl)}
-                        className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs transition flex items-center gap-1.5"
-                      >
-                        <span>Use Template</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

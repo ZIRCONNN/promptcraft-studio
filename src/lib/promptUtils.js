@@ -80,8 +80,7 @@ export function assemblePrompt(s, values) {
   let out;
   if (s.targetModel === 'Midjourney') {
     // /imagine must be one line, so collapse newlines. Variables are now filled for this branch too.
-    out = `/imagine prompt: ${s.goal} --role ${s.role} --style ${s.tone} ${s.constraints} --ar 16:9 --v 6.0`
-      .replace(/\s+/g, ' ');
+    out = `/imagine prompt: ${s.goal} ${s.context} ${s.constraints} --ar 16:9 --v 6.0`.replace(/\s+/g, ' ');
   } else {
     const prefix = s.targetModel === 'Claude'
       ? '<system_instructions>\nYou are an expert assistant. Follow instructions with meticulous care.\n</system_instructions>\n\n'
